@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TPACK-XS Student Self-Assessment</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Chart.js for Radar Chart -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+    <!-- Custom Tailwind Configuration for MSU Palette -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        msumaroon: '#5D1725',
+                        msugrey: '#CCCCCC',
+                        msulightgrey: '#F4F4F4',
+                        msudarkgrey: '#333333'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Custom radio button styling */
+        input[type="radio"] {
+            accent-color: #5D1725;
+            width: 1.25rem;
+            height: 1.25rem;
+            cursor: pointer;
+        }
+
+        .scale-label {
+            font-size: 0.85rem;
+            text-align: center;
+            color: #666;
+        }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+        }
+
+        /* Smooth transitions */
+        .fade-enter {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        .fade-enter-active {
+            opacity: 1;
+            transform: translateY(0);
+            transition: opacity 500ms, transform 500ms;
+        }
+
+        .hidden-section {
+            display: none !important;
+        }
+
+        /* Print Styles for PDF saving */
+        @media print {
+            body {
+                background-color: white !important;
+                color: black !important;
+            }
+
+            header,
+            #intro-section,
+            #error-toast,
+            #success-toast,
+            .no-print {
+                display: none !important;
+            }
+
+            main {
+                padding: 0 !important;
+                margin: 0 !important;
+                max-width: 100% !important;
+            }
+
+            #results-section {
+                box-shadow: none !important;
+                background: transparent !important;
+                padding: 0 !important;
+                border: none !important;
+            }
+
+            .bg-gray-50 {
+                background-color: white !important;
+                border: 1px solid #eee !important;
+            }
+
+            /* Ensure chart size is constrained during print */
+            .chart-container {
+                max-width: 400px !important;
+                margin: 0 auto !important;
+                page-break-inside: avoid;
+            }
+
+            .page-break-inside-avoid {
+                page-break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+
+<body class="bg-msulightgrey text-msudarkgrey min-h-screen font-sans">
+
+    <header class="bg-msumaroon text-white shadow-md sticky top-0 z-50">
+        <div class="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
+            <div>
+                <h1 class="text-2xl font-bold tracking-tight">TPACK-XS Assessment</h1>
+                <p class="text-sm text-msugrey mt-1">Technology, Pedagogy, and Content Knowledge</p>
+            </div>
+            <!-- Optional Logo Placeholder -->
+            <div
+                class="w-12 h-12 bg-white rounded-full flex items-center justify-center text-msumaroon font-bold text-xl shadow-inner">
+                MSU
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-5xl mx-auto px-4 py-8">
+
+        <!-- Error Toast (replaces alert) -->
+        <div id="error-toast"
+            class="fixed top-24 right-4 bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded shadow-lg hidden z-50 transition-all duration-300 transform translate-x-full">
+            <p id="error-message" class="font-semibold"></p>
+        </div>
+
+        <!-- Notification Toast -->
+        <div id="success-toast"
+            class="fixed top-24 right-4 bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded shadow-lg hidden z-50 transition-all duration-300 transform translate-x-full">
+            <p id="success-message" class="font-semibold">Data saved successfully!</p>
+        </div>
+
+        <!-- Intro Section -->
+        <section id="intro-section" class="glass-panel rounded-xl p-8 mb-8 fade-enter-active">
+            <h2 class="text-2xl font-semibold text-msumaroon mb-4">Welcome to the TPACK Self-Assessment</h2>
+            <p class="mb-4 text-gray-700 leading-relaxed">
+                This instrument is designed to help you reflect on your knowledge at the intersection of technology,
+                pedagogy, and content.
+                There are no right or wrong answers. Honest reflection will provide you with the most useful feedback
+                for your professional growth.
+            </p>
+            <p class="mb-6 text-gray-700 leading-relaxed">
+                Please rate your agreement with the following statements on a scale from 1 (Strongly Disagree) to 5
+                (Strongly Agree).
+            </p>
+
+            <form id="tpack-form">
+                <div class="mb-6">
+                    <label class="block text-sm font-semibold mb-2" for="studentId">Student Identifier (e.g., NetID or
+                        Email):</label>
+                    <input type="text" id="studentId" required
+                        class="w-full md:w-1/2 p-3 border border-gray-300 rounded focus:outline-none focus:border-msumaroon focus:ring-1 focus:ring-msumaroon transition-colors"
+                        placeholder="Enter your identifier">
+                </div>
+
+                <!-- Questions Container -->
+                <div id="questions-container" class="space-y-6">
+                    <!-- JS will populate questions here -->
+                </div>
+
+                <div class="mt-10 pt-6 border-t border-gray-200 flex justify-end">
+                    <button type="submit"
+                        class="bg-msumaroon hover:bg-red-900 text-white font-bold py-3 px-8 rounded shadow transition-colors flex items-center">
+                        <span>Submit Assessment</span>
+                        <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                            xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M13 5l7 7-7 7M5 5l7 7-7 7"></path>
+                        </svg>
+                    </button>
+                </div>
+            </form>
+        </section>
+
+        <!-- Results Section -->
+        <section id="results-section" class="hidden-section glass-panel rounded-xl p-8 fade-enter-active">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 border-b pb-4 gap-4">
+                <div>
+                    <h2 class="text-3xl font-bold text-msumaroon">Your Reflection Profile</h2>
+                    <p id="assessment-date" class="text-sm text-gray-500 mt-1"></p>
+                </div>
+                <div class="flex gap-3 no-print w-full md:w-auto">
+                    <button onclick="window.print()"
+                        class="bg-msudarkgrey hover:bg-black text-white font-semibold py-2 px-4 rounded shadow flex items-center justify-center transition-colors flex-1 md:flex-none">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                        </svg>
+                        Save as PDF
+                    </button>
+                    <button onclick="window.location.reload()"
+                        class="bg-gray-200 hover:bg-gray-300 text-msudarkgrey font-semibold py-2 px-4 rounded shadow transition-colors flex-1 md:flex-none">Retake</button>
+                </div>
+            </div>
+
+            <p class="text-gray-700 mb-8 leading-relaxed text-lg">
+            <p class="text-gray-700 mb-8 leading-relaxed text-lg">
+                Thank you for taking the time to reflect! Below is a visual representation of your self-assessment
+                compared to national averages.
+                Remember, this is just a snapshot of where you are right now. The goal is to identify areas you feel
+                excited to grow in.
+            </p>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-12 mb-10 page-break-inside-avoid">
+                <!-- Chart Container -->
+                <div
+                    class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex justify-center chart-container">
+                    <div class="relative w-full aspect-square max-w-[400px]">
+                        <canvas id="tpackChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Quick Summary Stats -->
+                <div class="flex flex-col justify-center space-y-4">
+                    <h3 class="text-xl font-bold text-msudarkgrey border-b pb-2">Domain Scores</h3>
+                    <div id="score-summary" class="grid grid-cols-1 gap-3">
+                        <!-- JS populated score pills -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Formative Feedback Container -->
+            <div class="mt-8">
+                <h3 class="text-2xl font-bold text-msumaroon mb-6">Autonomy-Supportive Feedback</h3>
+                <div id="feedback-container" class="space-y-6">
+                    <!-- JS populated feedback cards -->
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        /**
+         * ------------------------------------------------------------------------
+         * GOOGLE SHEETS INTEGRATION SETUP INSTRUCTIONS
+         * ------------------------------------------------------------------------
+         * To securely save data to Google Sheets from this static HTML file:
+         * 1. Go to Google Sheets, create a new sheet. Name the columns:
+         *    Timestamp, StudentID, PK, CK, TK, PCK, TPK, TCK, TPCK
+         * 2. Go to Extensions > Apps Script.
+         * 3. Paste the following code into the script editor:
+         * 
+         *    function doPost(e) {
+         *      var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+         *      var data = JSON.parse(e.postData.contents);
+         *      sheet.appendRow([new Date(), data.studentId, data.scores.PK, data.scores.CK, data.scores.TK, data.scores.PCK, data.scores.TPK, data.scores.TCK, data.scores.TPCK]);
+         *      return ContentService.createTextOutput(JSON.stringify({"status": "success"})).setMimeType(ContentService.MimeType.JSON);
+         *    }
+         * 
+         * 4. Click Deploy > New Deployment. 
+         * 5. Select type: Web App. Execute as: YOU. Who has access: ANYONE.
+         * 6. Copy the resulting Web App URL and paste it into the constant below.
+         */
+        const GOOGLE_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxuWi7TY0nFTA-ejKhLGFCAumcwGh03pOnB8rET99TV2ZS-voXoRPBL-QEiZ9mEi24LAA/exec"; // <-- PASTE YOUR APP SCRIPT URL HERE
+
+        // --- TPACK-XS Instrument Data ---
+        const averages = {
+            PK: 3.68,
+            CK: 4.20,
+            TK: 3.40,
+            PCK: 3.88,
+            TPK: 3.80,
+            TCK: 3.27,
+            TPCK: 3.56
+        };
+
+        const domains = {
+            PK: "Pedagogical Knowledge",
+            CK: "Content Knowledge",
+            TK: "Technological Knowledge",
+            PCK: "Pedagogical Content Knowledge",
+            TPK: "Technological Pedagogical Knowledge",
+            TCK: "Technological Content Knowledge",
+            TPCK: "Technological Pedagogical Content Knowledge"
+        };
+
+        const questions = [
+            { id: 'pk1', domain: 'PK', text: 'I can adapt my teaching based upon what students currently understand or do not understand.' },
+            { id: 'pk2', domain: 'PK', text: 'I can adapt my teaching style to different learners.' },
+            { id: 'pk3', domain: 'PK', text: 'I can use a wide range of teaching approaches in a classroom setting.' },
+            { id: 'pk4', domain: 'PK', text: 'I can assess student learning in multiple ways.' },
+            { id: 'ck1', domain: 'CK', text: 'I have sufficient knowledge about my teaching subject.' },
+            { id: 'ck2', domain: 'CK', text: 'I can use a subject-specific way of thinking in my teaching subject.' },
+            { id: 'ck3', domain: 'CK', text: 'I know the basic theories and concepts of my teaching subject.' },
+            { id: 'ck4', domain: 'CK', text: 'I know the history and development of important theories in my teaching subject.' },
+            { id: 'tk1', domain: 'TK', text: 'I keep up with important new technologies.' },
+            { id: 'tk2', domain: 'TK', text: 'I frequently play around with the technology.' },
+            { id: 'tk3', domain: 'TK', text: 'I know about a lot of different technologies.' },
+            { id: 'tk4', domain: 'TK', text: 'I have the technical skills I need to use technology.' },
+            { id: 'pck1', domain: 'PCK', text: 'I know how to select effective teaching approaches to guide student thinking and learning in my teaching subject.' },
+            { id: 'pck2', domain: 'PCK', text: 'I know how to develop appropriate tasks to promote students complex thinking of my teaching subject.' },
+            { id: 'pck3', domain: 'PCK', text: 'I know how to develop exercises with which students can consolidate their knowledge of my teaching subject.' },
+            { id: 'pck4', domain: 'PCK', text: 'I know how to evaluate students\' performance in my teaching subject.' },
+            { id: 'tpk1', domain: 'TPK', text: 'I can choose technologies that enhance the teaching approaches for a lesson.' },
+            { id: 'tpk2', domain: 'TPK', text: 'I can choose technologies that enhance students\' learning for a lesson.' },
+            { id: 'tpk3', domain: 'TPK', text: 'I can adapt the use of the technologies that I am learning about to different teaching activities.' },
+            { id: 'tpk4', domain: 'TPK', text: 'I am thinking critically about how to use technology in my classroom.' },
+            { id: 'tck1', domain: 'TCK', text: 'I know how technological developments have changed the field of my subject.' },
+            { id: 'tck2', domain: 'TCK', text: 'I can explain which technologies have been used in research in my field.' },
+            { id: 'tck3', domain: 'TCK', text: 'I know which new technologies are currently being developed in the field of my subject.' },
+            { id: 'tck4', domain: 'TCK', text: 'I know how to use technologies to participate in scientific discourse in my field.' },
+            { id: 'tpck1', domain: 'TPCK', text: 'I can teach lessons that appropriately combine my teaching subject, technologies, and teaching approaches.' },
+            { id: 'tpck2', domain: 'TPCK', text: 'I can use strategies that combine content, technologies, and teaching approaches that I learned about in my coursework in my classroom.' },
+            { id: 'tpck3', domain: 'TPCK', text: 'I can choose technologies that enhance the content of a lesson.' },
+            { id: 'tpck4', domain: 'TPCK', text: 'I can select technologies to use in my classroom that enhance what I teach, how I teach, and what students learn.' }
+        ];
+
+        function renderQuestions() {
+            const container = document.getElementById('questions-container');
+
+            questions.forEach((q, index) => {
+                const isEven = index % 2 === 0;
+                const bgClass = isEven ? 'bg-white' : 'bg-gray-50';
+
+                const html = `
+                    <div class="${bgClass} p-5 rounded-lg border border-gray-100 shadow-sm transition-colors hover:border-msugrey">
+                        <p class="font-medium text-gray-800 mb-4"><span class="font-bold text-msumaroon mr-2">${index + 1}.</span>${q.text}</p>
+                        
+                        <div class="flex justify-between items-center max-w-lg mx-auto mt-2">
+                            <div class="flex flex-col items-center justify-end h-16 w-12">
+                                <label class="scale-label mb-1">Strongly<br>Disagree</label>
+                                <input type="radio" name="${q.id}" value="1" required>
+                            </div>
+                            <div class="flex flex-col items-center justify-end h-16 w-12">
+                                <label class="scale-label mb-1">Disagree</label>
+                                <input type="radio" name="${q.id}" value="2" required>
+                            </div>
+                            <div class="flex flex-col items-center justify-end h-16 w-12">
+                                <label class="scale-label mb-1">Neutral</label>
+                                <input type="radio" name="${q.id}" value="3" required>
+                            </div>
+                            <div class="flex flex-col items-center justify-end h-16 w-12">
+                                <label class="scale-label mb-1">Agree</label>
+                                <input type="radio" name="${q.id}" value="4" required>
+                            </div>
+                            <div class="flex flex-col items-center justify-end h-16 w-12">
+                                <label class="scale-label mb-1">Strongly<br>Agree</label>
+                                <input type="radio" name="${q.id}" value="5" required>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.insertAdjacentHTML('beforeend', html);
+            });
+        }
+
+        function showMessage(type, text) {
+            const elId = type === 'error' ? 'error-toast' : 'success-toast';
+            const msgId = type === 'error' ? 'error-message' : 'success-message';
+            const el = document.getElementById(elId);
+
+            document.getElementById(msgId).innerText = text;
+            el.classList.remove('hidden', 'translate-x-full');
+
+            setTimeout(() => {
+                el.classList.add('translate-x-full');
+                setTimeout(() => el.classList.add('hidden'), 300);
+            }, 5000);
+        }
+
+        document.getElementById('tpack-form').addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            const formData = new FormData(this);
+            const studentId = formData.get('studentId');
+
+            // Validate all questions answered
+            let allAnswered = true;
+            for (let q of questions) {
+                if (!formData.get(q.id)) {
+                    allAnswered = false;
+                    break;
+                }
+            }
+
+            if (!allAnswered) {
+                showMessage('error', 'Please answer all questions before submitting.');
+                return;
+            }
+
+            // Calculate Scores
+            let domainSums = { PK: 0, CK: 0, TK: 0, PCK: 0, TPK: 0, TCK: 0, TPCK: 0 };
+            let domainCounts = { PK: 0, CK: 0, TK: 0, PCK: 0, TPK: 0, TCK: 0, TPCK: 0 };
+            let itemScores = {};
+            let totalSum = 0;
+            let totalCount = 0;
+
+            questions.forEach(q => {
+                const val = parseInt(formData.get(q.id));
+                itemScores[q.id] = val; // Store individual item score
+                domainSums[q.domain] += val; // Add to subscale
+                domainCounts[q.domain]++;
+                totalSum += val; // Add to total
+                totalCount++;
+            });
+
+            const userScores = {};
+            for (let d in domainSums) {
+                userScores[d] = parseFloat((domainSums[d] / domainCounts[d]).toFixed(2));
+            }
+
+            const totalScore = parseFloat((totalSum / totalCount).toFixed(2));
+
+            const payload = {
+                studentId: studentId,
+                items: itemScores,
+                scores: userScores,
+                total: totalScore
+            };
+
+            // Post to Google Sheets if configured
+            if (GOOGLE_WEB_APP_URL !== "") {
+                fetch(GOOGLE_WEB_APP_URL, {
+                    method: 'POST',
+                    mode: 'no-cors', // Because Google Apps script web apps generally require no-cors from frontend
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                }).then(() => {
+                    showMessage('success', 'Your reflection has been securely saved.');
+                }).catch(err => {
+                    console.error("Error saving to sheet: ", err);
+                    // Non-blocking error, user can still see results.
+                });
+            } else {
+                console.log("No Google Web App URL provided. Data not saved remotely, displaying locally.");
+            }
+
+            showResults(userScores);
+        });
+
+        function showResults(userScores) {
+            document.getElementById('intro-section').classList.add('hidden-section');
+            const resultsSec = document.getElementById('results-section');
+            resultsSec.classList.remove('hidden-section');
+            resultsSec.scrollIntoView({ behavior: 'smooth' });
+
+            // Set the date for the printout
+            const now = new Date();
+            document.getElementById('assessment-date').innerText = "Completed on: " + now.toLocaleDateString() + " at " + now.toLocaleTimeString();
+
+            renderScoreSummary(userScores);
+            drawChart(userScores);
+            generateFeedback(userScores);
+        }
+
+        function renderScoreSummary(userScores) {
+            const container = document.getElementById('score-summary');
+            container.innerHTML = '';
+
+            Object.keys(userScores).forEach(domain => {
+                const userScore = userScores[domain];
+                const avgScore = averages[domain];
+                const diff = (userScore - avgScore).toFixed(2);
+
+                let diffColor = 'text-gray-500';
+                let diffIcon = '•';
+                if (diff > 0.1) { diffColor = 'text-green-600'; diffIcon = '↑'; }
+                if (diff < -0.1) { diffColor = 'text-blue-600'; diffIcon = '↓'; }
+
+                const html = `
+                    <div class="flex justify-between items-center p-3 bg-gray-50 rounded border border-gray-100 hover:bg-gray-100 transition-colors">
+                        <span class="font-bold text-gray-700 w-16">${domain}</span>
+                        <div class="flex-grow mx-4 relative h-2 bg-gray-200 rounded overflow-hidden">
+                            <div class="absolute top-0 left-0 h-full bg-msumaroon" style="width: ${(userScore / 5) * 100}%"></div>
+                        </div>
+                        <div class="flex items-center space-x-2 w-24 justify-end">
+                            <span class="font-bold">${userScore.toFixed(2)}</span>
+                            <span class="text-xs ${diffColor} font-bold" title="Difference from Average">${diffIcon}</span>
+                        </div>
+                    </div>
+                `;
+                container.insertAdjacentHTML('beforeend', html);
+            });
+        }
+
+        function drawChart(userScores) {
+            const ctx = document.getElementById('tpackChart').getContext('2d');
+            const labels = Object.keys(userScores);
+            const userData = Object.values(userScores);
+            const avgData = labels.map(l => averages[l]);
+
+            new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Your Score',
+                            data: userData,
+                            backgroundColor: 'rgba(93, 23, 37, 0.2)', // MSU Maroon with opacity
+                            borderColor: 'rgba(93, 23, 37, 1)',
+                            pointBackgroundColor: 'rgba(93, 23, 37, 1)',
+                            pointBorderColor: '#fff',
+                            pointHoverBackgroundColor: '#fff',
+                            pointHoverBorderColor: 'rgba(93, 23, 37, 1)',
+                            borderWidth: 2
+                        },
+                        {
+                            label: 'National Average',
+                            data: avgData,
+                            backgroundColor: 'rgba(204, 204, 204, 0.2)', // MSU Grey with opacity
+                            borderColor: 'rgba(150, 150, 150, 1)',
+                            pointBackgroundColor: 'rgba(150, 150, 150, 1)',
+                            pointBorderColor: '#fff',
+                            pointHoverBackgroundColor: '#fff',
+                            pointHoverBorderColor: 'rgba(150, 150, 150, 1)',
+                            borderWidth: 1,
+                            borderDash: [5, 5]
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            angleLines: { color: 'rgba(0,0,0,0.1)' },
+                            grid: { color: 'rgba(0,0,0,0.1)' },
+                            pointLabels: {
+                                font: { family: 'Inter', size: 12, weight: 'bold' },
+                                color: '#333'
+                            },
+                            ticks: {
+                                min: 1,
+                                max: 5,
+                                stepSize: 1,
+                                backdropColor: 'transparent'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: { position: 'bottom' },
+                        tooltip: {
+                            callbacks: {
+                                label: function (context) {
+                                    return context.dataset.label + ': ' + context.raw.toFixed(2);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function generateFeedback(userScores) {
+            const container = document.getElementById('feedback-container');
+            container.innerHTML = '';
+
+            const feedbackLogic = {
+                PK: {
+                    high: "Your reflections indicate a strong foundation in understanding how students learn and adapting your teaching. This flexibility is a wonderful asset! How might you invite your students to give you feedback on these approaches to refine them even further?",
+                    low: "It looks like developing varied teaching approaches is an area where you have room to explore. Every educator starts here! What is one new instructional strategy (like peer-teaching or inquiry-based learning) that feels approachable for you to try out next week?"
+                },
+                CK: {
+                    high: "You feel very confident in your subject matter expertise, which provides a fantastic anchor for your classroom. Given this deep understanding, how can you offer your students more choices in how they dive into the complex, fascinating parts of your discipline?",
+                    low: "Subject matter mastery is a lifelong journey. It is completely normal to feel like there's more to learn. As you continue building this knowledge, what resources or communities might you tap into that make learning the content genuinely enjoyable for you?"
+                },
+                TK: {
+                    high: "You express a solid comfort level with technology and picking up new tools. This curiosity is a great driver for innovation. As you experiment, how might you empower your students to also become co-explorers of these digital spaces with you?",
+                    low: "Technology can sometimes feel overwhelming, and recognizing that is an important first step. You don't have to master everything at once. Is there one specific, simple tool that aligns with your personal interests that you'd like to play around with at your own pace?"
+                },
+                PCK: {
+                    high: "You show a great ability to translate your subject matter into accessible lessons for your students. This is the heart of teaching! Think about how you might give students options to demonstrate their understanding in ways that tap into their unique strengths.",
+                    low: "Figuring out exactly how to make complex subjects understandable takes practice. You might consider looking at how experienced colleagues structure their tasks. What is one specific topic you’d like to find a more engaging way to present?"
+                },
+                TPK: {
+                    high: "You are thoughtfully combining technology with your teaching strategies. This intentionality prevents technology from being just a 'gimmick'. How can you continue to let your pedagogical goals, rather than the tech itself, drive the choices you offer students?",
+                    low: "Integrating technology into teaching methods is a distinct skill. If it feels challenging right now, that's okay. Consider choosing a teaching strategy you already love—how might a very simple digital tool enhance that specific activity without completely changing it?"
+                },
+                TCK: {
+                    high: "You have a strong grasp of how technology is actually used within your specific field/discipline. Bringing authentic tools into the classroom makes learning so relevant. How can you encourage students to use these tools to solve real-world problems?",
+                    low: "The tools used by professionals in your field are constantly evolving. It could be exciting to discover what they are! Perhaps you could set aside a little time to explore a digital resource or software that professionals in your discipline currently use. What sparks your curiosity here?"
+                },
+                TPCK: {
+                    high: "You are demonstrating a holistic ability to weave together content, pedagogy, and technology seamlessly. This is a complex synthesis! As a confident practitioner, how can you mentor others or design learning environments that give students ultimate agency over their learning path?",
+                    low: "Combining all three domains—content, pedagogy, and technology—is complex and takes time to master. Don't rush the process. When planning your next lesson, what if you focus primarily on strong content and pedagogy, and just introduce one small technological element to see how it feels?"
+                }
+            };
+
+            Object.keys(userScores).forEach(domain => {
+                const score = userScores[domain];
+                const avg = averages[domain];
+                // Check if user is at/above average (high) or below (low)
+                const isHigh = score >= avg;
+                const feedbackText = isHigh ? feedbackLogic[domain].high : feedbackLogic[domain].low;
+
+                // Color coding for visual hierarchy
+                const headerColor = isHigh ? 'text-msumaroon' : 'text-blue-800';
+                const bgBorder = isHigh ? 'border-l-msumaroon' : 'border-l-blue-500';
+
+                const html = `
+                    <div class="bg-white p-6 rounded shadow-sm border-l-4 ${bgBorder}">
+                        <h4 class="font-bold text-lg ${headerColor} mb-2">${domains[domain]} (${domain})</h4>
+                        <p class="text-gray-700 leading-relaxed">${feedbackText}</p>
+                    </div>
+                `;
+                container.insertAdjacentHTML('beforeend', html);
+            });
+        }
+
+        // Initialize App
+        window.onload = function () {
+            renderQuestions();
+        };
+
+    </script>
+</body>
+
+</html>
